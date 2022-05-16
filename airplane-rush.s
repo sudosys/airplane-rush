@@ -2,7 +2,7 @@
 
 # Display Attributes
 .eqv WIDTH 512
-.eqv HEIGTH 256
+.eqv HEIGHT 256
 .eqv ORIGIN 0x10010000
 
 # Colors
@@ -15,7 +15,6 @@
 
 main:
 
-	# call draw_sky
 	jal draw_sky
 	
 	li $v0, 10
@@ -26,22 +25,15 @@ draw_sky:
 	sw $ra, 0($sp)
 	
 	addi $t3, $zero, CYAN
-	addi $t4, $zero, WIDTH
-	addi $t5, $zero, HEIGTH
-
-	addi $a0, $zero, 0
-	addi $a1, $zero, 0
-	jal calc_pixel_addr
+	addi $t4, $zero, 0x20000 # 0x20000 is 512*256 in hex
+	la $t5, ORIGIN
 	
 	draw_loop:
-		sw $t3, 0($v0)
+		sw $t3, 0($t5)
 		subi $t4, $t4, 1
-		addiu $v0, $v0, 4
-		bnez $t4, draw_loop
-	
-	subi $t5, $t5, 1
-	bnez $t5, draw_loop
-		
+		addi $t5, $t5, 4
+		bnez $t4, draw_loop		
+
 	lw $ra, 0($sp)
 	addiu, $sp, $sp, 4
 	
