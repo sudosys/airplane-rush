@@ -13,11 +13,29 @@
 .eqv PLANE_MID_COORD 100
 .eqv PLANE_DOWN_COORD 180
 
+.macro sleep_10ms
+li $v0, 32
+li $a0, 10
+.end_macro
+
+# Bird Attributes
+.eqv BIRD_SIZE 25
+
+# Health Kit Attributes
+.eqv HEALTH_KIT_SIZE 25
+
+# Buse Yýlmaz Castle Attributes
+.eqv CASTLE_WIDTH 25
+.eqv CASTLE_HEIGHT 256
+.eqv CASTLE_X_COORD 487
+.eqv CASTLE_Y_COORD 0
+
 # Colors
 .eqv CYAN 0x0000FFFF # Sky
 .eqv GREEN 0x0000FF00 # Plane
 .eqv YELLOW 0x00FFFF00 # Birds
-.eqv RED 0x00FF0000 # Fuel tanks
+.eqv RED 0x00FF0000 # Health Kit
+.eqv MAGENTA 0x00FF00FF # Buse Yýlmaz Castle
 
 .text
 
@@ -93,6 +111,57 @@ draw_plane:
 	li $a1, PLANE_WIDTH
 	li $a2, PLANE_MID_COORD
 	li $a3, PLANE_HEIGHT
+	
+	jal draw_object
+	
+	lw $ra, 0($sp)
+	addiu, $sp, $sp, 4
+	
+	jr $ra
+
+draw_bird:
+	addiu $sp, $sp, -4
+	sw $ra, 0($sp)
+	
+	addi $s0, $zero, YELLOW
+	li $a0, 200
+	li $a1, BIRD_SIZE
+	li $a2, 90
+	li $a3, BIRD_SIZE
+	
+	jal draw_object
+	
+	lw $ra, 0($sp)
+	addiu, $sp, $sp, 4
+	
+	jr $ra
+
+draw_health_kit:
+	addiu $sp, $sp, -4
+	sw $ra, 0($sp)
+	
+	addi $s0, $zero, RED
+	li $a0, 200
+	li $a1, HEALTH_KIT_SIZE
+	li $a2, 90
+	li $a3, HEALTH_KIT_SIZE
+	
+	jal draw_object
+	
+	lw $ra, 0($sp)
+	addiu, $sp, $sp, 4
+	
+	jr $ra
+
+draw_buse_yilmaz_castle:
+	addiu $sp, $sp, -4
+	sw $ra, 0($sp)
+	
+	addi $s0, $zero, MAGENTA
+	li $a0, CASTLE_X_COORD
+	li $a1, CASTLE_WIDTH
+	li $a2, CASTLE_Y_COORD
+	li $a3, CASTLE_HEIGHT
 	
 	jal draw_object
 	
