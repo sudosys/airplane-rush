@@ -13,6 +13,10 @@
 .eqv PLANE_MID_COORD 100
 .eqv PLANE_DOWN_COORD 180
 
+# Buttons
+.eqv W_BUTTON 119
+.eqv S_BUTTON 115
+
 .macro sleep_10ms
 li $v0, 32
 li $a0, 10
@@ -42,15 +46,17 @@ li $a0, 10
 main:
 
 	jal draw_sky
-	
+
+	li $a2, PLANE_MID_COORD	
 	jal draw_plane
+	
+	li $t9, 0
+	jal listen_button
 	
 	li $v0, 10
 	syscall
 
 draw_sky:
-	addiu $sp, $sp, -4
-	sw $ra, 0($sp)
 	
 	addi $t3, $zero, CYAN
 	addi $t4, $zero, 0x20000 # 0x20000 is 512*256 in hex
@@ -62,14 +68,10 @@ draw_sky:
 		addi $t5, $t5, 4
 		bnez $t4, draw_sky_loop		
 
-	lw $ra, 0($sp)
-	addiu, $sp, $sp, 4
-	
 	jr $ra
 
 # Parameters: $a0: x_coordinate, $a1: width, $a2: y_coordinate, $a3: height
 draw_object:
-
 	la $t1, ORIGIN
 
 	add $a1, $a1, $a0
@@ -102,6 +104,7 @@ draw_object:
 	
 	jr $ra
 
+# Arguments: $a2 = Plane's y axis
 draw_plane:
 	addiu $sp, $sp, -4
 	sw $ra, 0($sp)
@@ -109,7 +112,6 @@ draw_plane:
 	addi $s0, $zero, GREEN
 	li $a0, PLANE_X_COORD
 	li $a1, PLANE_WIDTH
-	li $a2, PLANE_MID_COORD
 	li $a3, PLANE_HEIGHT
 	
 	jal draw_object
@@ -169,6 +171,123 @@ draw_buse_yilmaz_castle:
 	addiu, $sp, $sp, 4
 	
 	jr $ra
+
+listen_button:
+	addiu $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	li $v0, 1
+	move $a0, $t9
+	syscall
+	
+	pool_loop:
+		lw $t0, 0xffff0000
+		li $s0, W_BUTTON
+		li $s1, S_BUTTON	
+	
+		andi $t0, $t0, 0x0001
+		beq $t0, $zero, pool_loop
+	
+	lw $t1, 0xffff0004
+	
+	beq $s0, $t1, w_button_pressed
+	beq $s1, $t1, s_button_pressed
+
+	lw $ra, 0($sp)
+	addiu, $sp, $sp, 4
+
+	j listen_button
+	
+w_button_pressed:
+	addiu $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	li $t8, 1
+	
+	bge $t9, $t8, return_back_w
+
+	addiu $t9, $t9, 1
+	
+	beq $t9, $zero, draw_mid_w
+	beq $t9, $t8, draw_upper_w
+	
+	draw_mid_w: 
+		li $a2, PLANE_DOWN_COORD
+		jal plane_relocate
+		
+		li $a2, PLANE_MID_COORD
+		jal draw_plane
+		
+		j return_back_w
+	
+	draw_upper_w:
+		li $a2, PLANE_MID_COORD
+		jal plane_relocate
+	
+		li $a2, PLANE_UP_COORD
+		jal draw_plane
+		
+		j return_back_w
+	
+	lw $ra, 0($sp)
+	addiu, $sp, $sp, 4
+	
+	return_back_w: jal listen_button
+
+s_button_pressed:
+	addiu $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	li $t8, -1
+
+	ble $t9, $t8, return_back_s
+
+	addiu $t9, $t9, -1
+	
+	beq $t9, $zero, draw_mid_s
+	
+	beq $t9, $t8, draw_lower_s
+	
+	draw_mid_s:
+		li $a2, PLANE_UP_COORD
+		jal plane_relocate
+	
+		li $a2, PLANE_MID_COORD
+		jal draw_plane
+		
+		j return_back_s
+	
+	draw_lower_s:
+		li $a2, PLANE_MID_COORD
+		jal plane_relocate
+	
+		li $a2, PLANE_DOWN_COORD
+		jal draw_plane
+		
+		j return_back_s
+	
+	lw $ra, 0($sp)
+	addiu, $sp, $sp, 4
+	
+	return_back_s: jal listen_button
+	
+# Arguments: $a2 = Plane's y axis
+plane_relocate:
+	addiu $sp, $sp, -4
+	sw $ra, 0($sp)
+	
+	addi $s0, $zero, CYAN
+	li $a0, PLANE_X_COORD
+	li $a1, PLANE_WIDTH
+	li $a3, PLANE_HEIGHT
+	
+	jal draw_object
+	
+	lw $ra, 0($sp)
+	addiu, $sp, $sp, 4
+	
+	jr $ra
+
 
 # Parameters: $a0 = x_coordinate, $a1 = y_coordinate
 calc_pixel_addr:
