@@ -18,18 +18,6 @@
 .eqv S_BUTTON 115
 .eqv SPC_BUTTON 32
 
-.macro sleep_100ms
-li $v0, 32
-li $a0, 100
-syscall
-.end_macro
-
-.macro sleep_10ms
-li $v0, 32
-li $a0, 10
-syscall
-.end_macro
-
 # Bird Attributes
 .eqv BIRD_SIZE 25
 .eqv BIRD_X_COORD 400
@@ -44,7 +32,7 @@ syscall
 .eqv HEALTH_KIT_MID_COORD 110
 .eqv HEALTH_KIT_DOWN_COORD 190
 
-# Buse Yýlmaz Castle Attributes
+# Buse Yï¿½lmaz Castle Attributes
 .eqv CASTLE_WIDTH 25
 .eqv CASTLE_HEIGHT 256
 .eqv CASTLE_X_COORD 487
@@ -55,7 +43,24 @@ syscall
 .eqv GREEN 0x0000FF00 # Plane
 .eqv YELLOW 0x00FFFF00 # Birds
 .eqv RED 0x00FF0000 # Health Kit
-.eqv MAGENTA 0x00FF00FF # Buse Yýlmaz Castle
+.eqv MAGENTA 0x00FF00FF # Buse Yï¿½lmaz Castle
+
+.macro sleep_100ms
+li $v0, 32
+li $a0, 125
+syscall
+.end_macro
+
+.macro sleep_10ms
+li $v0, 32
+li $a0, 10
+syscall
+.end_macro
+
+.data
+
+welcome_text: .asciiz "Welcome to Airplane Rush! Press SPACE to begin."
+game_over_text: .asciiz "Game Over!"
 
 .text
 
@@ -63,37 +68,19 @@ main:
 	addiu $sp, $sp, -4
 	sw $ra, 0($sp)
 	
+	li $v0, 4
+	la $a0, welcome_text
+	syscall
+	
 	jal draw_sky
 
 	li $a2, PLANE_MID_COORD	
 	jal draw_plane
 	
-	li $t9, 0
-	#jal listen_button
+	li $t2, 2
 	
-	add $s6, $s6, 1
-	
-	li $s4, BIRD_UP_COORD
-	li $s5, BIRD_MID_COORD
-	jal bird_wave
-	
-	li $s4, BIRD_MID_COORD
-	li $s5, BIRD_DOWN_COORD
-	jal bird_wave
-	
-	li $s4, BIRD_UP_COORD
-	li $s5, BIRD_MID_COORD
-	jal bird_wave	
-	
-	li $s4, BIRD_MID_COORD
-	li $s5, BIRD_DOWN_COORD
-	jal bird_wave
-	
-	li $s4, BIRD_UP_COORD
-	li $s5, BIRD_DOWN_COORD
-	jal bird_wave
-	
-	jal draw_buse_yilmaz_castle
+	li $t9, PLANE_MID_COORD
+	jal listen_game_start
 	
 	lw $ra, 0($sp)
 	addiu, $sp, $sp, 4
@@ -212,101 +199,134 @@ draw_buse_yilmaz_castle:
 	
 	jr $ra
 
-listen_button:
+listen_game_start:
 	addiu $sp, $sp, -4
 	sw $ra, 0($sp)
 
 	pool_loop:
 		lw $t0, 0xffff0000
-		li $s0, W_BUTTON
-		li $s1, S_BUTTON
 		li $s2, SPC_BUTTON
-		
 		andi $t0, $t0, 0x0001
 		beq $t0, $zero, pool_loop
 	
 	lw $t1, 0xffff0004
 	
-	beq $s0, $t1, w_button_pressed
-	beq $s1, $t1, s_button_pressed
-	#beq $s2, $t1, game_begin
+	beq $s2, $t1, game_begin
+	j pool_loop
 
 	lw $ra, 0($sp)
 	addiu, $sp, $sp, 4
 
-	j listen_button
-	
-w_button_pressed:
+	jr $ra
+
+listen_button:
+
 	addiu $sp, $sp, -4
 	sw $ra, 0($sp)
 
-	bge $t9, 1, return_back_w
+	lw $t0, 0xffff0000
+	li $s7, W_BUTTON
+	li $s1, S_BUTTON
+	andi $t0, $t0, 0x0001	
 
-	addiu $t9, $t9, 1
+	bne $t0, 1, end_listen
 	
-	beq $t9, $zero, draw_mid_w
-	beq $t9, 1, draw_upper_w
+	lw $t1, 0xffff0004
 	
-	draw_mid_w: 
-		li $a2, PLANE_DOWN_COORD
-		jal plane_relocate
-		
-		li $a2, PLANE_MID_COORD
-		jal draw_plane
-		
-		j return_back_w
+	beq $s7, $t1, w_button_pressed_remastered
+	beq $s1, $t1, s_button_pressed_remastered
 	
-	draw_upper_w:
-		li $a2, PLANE_MID_COORD
-		jal plane_relocate
-	
-		li $a2, PLANE_UP_COORD
-		jal draw_plane
-		
-		j return_back_w
-	
-	lw $ra, 0($sp)
-	addiu, $sp, $sp, 4
-	
-	return_back_w: jal listen_button
+	w_button_pressed_remastered:
+		ble $t9, PLANE_UP_COORD, end_listen
 
-s_button_pressed:
+		addiu $t9, $t9, -80
+	
+		beq $t9, PLANE_MID_COORD, draw_mid_w
+		beq $t9, PLANE_UP_COORD, draw_upper_w
+	
+		draw_mid_w: 
+			li $a2, PLANE_DOWN_COORD
+			jal plane_relocate
+			
+			li $a2, PLANE_MID_COORD
+			jal draw_plane
+			
+			j end_listen
+		
+		draw_upper_w:
+			li $a2, PLANE_MID_COORD
+			jal plane_relocate
+		
+			li $a2, PLANE_UP_COORD
+			jal draw_plane
+		
+			j end_listen
+
+	s_button_pressed_remastered:
+		bge $t9, PLANE_DOWN_COORD, end_listen
+
+		addiu $t9, $t9, 80
+		
+		beq $t9, PLANE_MID_COORD, draw_mid_s
+		
+		beq $t9, PLANE_DOWN_COORD, draw_lower_s
+		
+		draw_mid_s:
+			li $a2, PLANE_UP_COORD
+			jal plane_relocate
+		
+			li $a2, PLANE_MID_COORD
+			jal draw_plane
+			
+			j end_listen
+		
+		draw_lower_s:
+			li $a2, PLANE_MID_COORD
+			jal plane_relocate
+
+			li $a2, PLANE_DOWN_COORD
+			jal draw_plane
+			
+			j end_listen
+		
+	end_listen:
+		lw $ra, 0($sp)
+		addiu, $sp, $sp, 4
+
+		jr $ra
+
+game_begin:
 	addiu $sp, $sp, -4
 	sw $ra, 0($sp)
 
-	ble $t9, -1, return_back_s
-
-	addiu $t9, $t9, -1
+	add $s6, $s6, 1
 	
-	beq $t9, $zero, draw_mid_s
+	li $s4, BIRD_UP_COORD
+	li $s5, BIRD_MID_COORD
+	jal bird_wave
 	
-	beq $t9, -1, draw_lower_s
+	li $s4, BIRD_MID_COORD
+	li $s5, BIRD_DOWN_COORD
+	jal bird_wave
 	
-	draw_mid_s:
-		li $a2, PLANE_UP_COORD
-		jal plane_relocate
+	li $s4, BIRD_UP_COORD
+	li $s5, BIRD_MID_COORD
+	jal bird_wave	
 	
-		li $a2, PLANE_MID_COORD
-		jal draw_plane
-		
-		j return_back_s
+	li $s4, BIRD_MID_COORD
+	li $s5, BIRD_DOWN_COORD
+	jal bird_wave
 	
-	draw_lower_s:
-		li $a2, PLANE_MID_COORD
-		jal plane_relocate
+	li $s4, BIRD_UP_COORD
+	li $s5, BIRD_DOWN_COORD
+	jal bird_wave
 	
-		li $a2, PLANE_DOWN_COORD
-		jal draw_plane
-		
-		j return_back_s
+	jal draw_buse_yilmaz_castle
 	
 	lw $ra, 0($sp)
 	addiu, $sp, $sp, 4
 	
-	return_back_s: jal listen_button
-
-#game_begin:
-		
+	jr $ra
 
 # Arguments: $a2 = Plane's y axis
 plane_relocate:
@@ -357,12 +377,37 @@ health_kit_relocate:
 	
 	jr $ra
 
+check_health:
+	beq $t5, 10, bird1_reached_plane
+	beq $t6, 10, bird2_reached_plane
+	
+	bird1_reached_plane:
+		beq $t9, $s4, bird_hit_plane
+		j check_health_return
+	
+	bird2_reached_plane:
+		beq $t9, $s5, bird_hit_plane
+		j check_health_return
+	
+	bird_hit_plane:
+		subi, $t2, $t2, 1
+
+	beqz $t2, end_game
+	j check_health_return
+	
+	end_game:
+		li $v0, 32
+		la $a0, game_over_text
+		syscall
+		
+	check_health_return: jr $ra
+
 # Arguments: $s4 = Bird 1's y axis, $s5 = Bird 2's y axis
 bird_wave:
 	addiu $sp, $sp, -4
 	sw $ra, 0($sp)
 	
-	li $t0, BIRD_X_COORD
+	li $t7, BIRD_X_COORD
 	li $t8, HEALTH_KIT_X_COORD
 	
 	li $s3, 13 # Bird movement limit
@@ -371,9 +416,11 @@ bird_wave:
 	
 	move_loop:
 		
+		jal listen_button
+		
 		# Draw Bird 1
 		move $a2, $s4	
-		move $a0, $t0
+		move $a0, $t7
 				
 		jal draw_bird
 		
@@ -381,13 +428,13 @@ bird_wave:
 		
 		# Draw Bird 2
 		move $a2, $s5		
-		move $a0, $t0
+		move $a0, $t7
 				
 		jal draw_bird
 		
 		# Relocate Bird 1
 		move $a2, $s4		
-		move $a0, $t0
+		move $a0, $t7
 		
 		jal bird_relocate
 		
@@ -395,17 +442,17 @@ bird_wave:
 
 		# Relocate Bird 2
 		move $a2, $s5	
-		move $a0, $t0
+		move $a0, $t7
 		
 		jal bird_relocate
 
-		subi $t0, $t0, 30
+		subi $t7, $t7, 30
 		
 		sleep_100ms
 		
 		# Redraw Bird 1
 		move $a2, $s4
-		move $a0, $t0
+		move $a0, $t7
 		
 		jal draw_bird
 		
@@ -413,13 +460,13 @@ bird_wave:
 		
 		# Redraw Bird 2
 		move $a2, $s5
-		move $a0, $t0
+		move $a0, $t7
 		
 		jal draw_bird
 		
 		beq $s6, 3, draw_hkit
 		j dont_draw_hkit
-		
+	
 		draw_hkit:
 			move $a0, $t8
 			li $a2, HEALTH_KIT_DOWN_COORD
@@ -435,22 +482,44 @@ bird_wave:
 			li $a2, HEALTH_KIT_DOWN_COORD
 			jal draw_health_kit
 		
-		dont_draw_hkit:
 		
+		dont_draw_hkit:
 			subi $s3, $s3, 1
 			addi $t5, $t5, 1
 			addi $t6, $t6, 1
+			
+			jal check_health
 		
-		bnez $s3, move_loop
+			li $v0, 1
+			add $a0, $zero, $v1
+			syscall	
+			
+		continue_loop:
+			
+			bnez $s3, move_loop
 	
 	addi $s6, $s6, 1
+	
+	# Bird 1 Out
+	move $a2, $s4		
+	move $a0, $t0	
+	jal bird_relocate
+	
+	# Bird 2 Out
+	move $a2, $s5	
+	move $a0, $t0
+	jal bird_relocate
+	
+	# Health Kit Out
+	move $a0, $t8
+	li $a2, HEALTH_KIT_DOWN_COORD
+	jal health_kit_relocate
 	
 	lw $ra, 0($sp)
 	addiu, $sp, $sp, 4
 	
 	jr $ra
 	
-
 # Parameters: $a0 = x_coordinate, $a1 = y_coordinate
 calc_pixel_addr:
 	
