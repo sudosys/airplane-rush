@@ -1,5 +1,26 @@
 # Airplane Rush Game
 
+##Bitmap Display Settings## 
+# Unit Width: 1
+# Unit Height: 1
+# Display Width: 512
+# Display Height: 256
+# Base Address: Static Data
+############################
+
+######Game Information######
+# Green object is the plane
+# Yellow objects are the birds
+# Red objects are the health kits
+# Purple building is the Buse YÄ±lmaz Castle
+# Pressing SPACE will start the game
+# Plane can be controlled with 'w' and 's' keys
+# Plane has total of 2 health points
+# If you hit a bird, you lose 1 health point
+# Health kit gives you 1 health point
+# Enjoy! ;)
+############################
+
 # Display Attributes
 .eqv DISPLAY_WIDTH 512
 .eqv DISPLAY_HEIGHT 256
@@ -32,7 +53,7 @@
 .eqv HEALTH_KIT_MID_COORD 110
 .eqv HEALTH_KIT_DOWN_COORD 190
 
-# Buse Yýlmaz Castle Attributes
+# Buse Yï¿½lmaz Castle Attributes
 .eqv CASTLE_WIDTH 25
 .eqv CASTLE_HEIGHT 256
 .eqv CASTLE_X_COORD 487
@@ -43,7 +64,7 @@
 .eqv GREEN 0x0000FF00 # Plane
 .eqv YELLOW 0x00FFFF00 # Birds
 .eqv RED 0x00FF0000 # Health Kit
-.eqv MAGENTA 0x00FF00FF # Buse Yýlmaz Castle
+.eqv MAGENTA 0x00FF00FF # Buse Yï¿½lmaz Castle
 
 .macro sleep_100ms
 li $v0, 32
